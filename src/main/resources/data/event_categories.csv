@@ -1,0 +1,6 @@
+id,name,description,color,created_at,updated_at
+1,Academic,"Lectures, seminars, and academic workshops","#3498db",2024-01-01 00:00:00,2024-01-01 00:00:00
+2,Social,"Social gatherings and networking events","#e74c3c",2024-01-01 00:00:00,2024-01-01 00:00:00
+3,Cultural,"Cultural performances, exhibitions, and celebrations","#9b59b6",2024-01-01 00:00:00,2024-01-01 00:00:00
+4,Sports,"Sports competitions and fitness activities","#2ecc71",2024-01-01 00:00:00,2024-01-01 00:00:00
+5,Workshop,"Hands-on learning and skill-building sessions","#f39c12",2024-01-01 00:00:00,2024-01-01 00:00:00
