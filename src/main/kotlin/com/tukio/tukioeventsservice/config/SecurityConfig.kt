@@ -21,7 +21,7 @@ class SecurityConfig {
                     .requestMatchers("/api/event-categories/**").permitAll()
                     .requestMatchers("/api/event-registrations/**").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                    .anyRequest().authenticated()
+                    .anyRequest().permitAll()
             }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
 

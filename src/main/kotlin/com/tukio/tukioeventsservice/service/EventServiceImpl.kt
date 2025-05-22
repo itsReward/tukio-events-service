@@ -1,5 +1,8 @@
 package com.tukio.tukioeventsservice.service
 
+import com.tukio.tukioeventsservice.client.BatchNotificationRequestDTO
+import com.tukio.tukioeventsservice.client.NotificationRequestDTO
+import com.tukio.tukioeventsservice.client.NotificationServiceClient
 import com.tukio.tukioeventsservice.client.VenueServiceClient
 import com.tukio.tukioeventsservice.dto.*
 import com.tukio.tukioeventsservice.exception.ResourceNotFoundException
@@ -10,8 +13,10 @@ import com.tukio.tukioeventsservice.repository.EventRegistrationRepository
 import com.tukio.tukioeventsservice.repository.EventRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 
 @Service
@@ -21,6 +26,9 @@ class EventServiceImpl(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val venueServiceClient: VenueServiceClient
 ) : EventService {
+
+    @Autowired
+    private lateinit var notificationServiceClient: NotificationServiceClient
 
     private val logger = LoggerFactory.getLogger(EventServiceImpl::class.java)
 
@@ -36,6 +44,9 @@ class EventServiceImpl(
 
     @Transactional
     override fun createEvent(eventRequest: EventCreateRequest): EventDTO {
+        logger.info("Received event creation request: $eventRequest")
+        logger.info("Creating new event with title: ${eventRequest.title}")
+
         val category = eventCategoryRepository.findById(eventRequest.categoryId)
             .orElseThrow { ResourceNotFoundException("Category not found with id: ${eventRequest.categoryId}") }
 
@@ -70,6 +81,27 @@ class EventServiceImpl(
             } catch (e: Exception) {
                 logger.warn("Failed to automatically allocate venue for event ${savedEvent.id}: ${e.message}")
             }
+        }
+
+        // Send notification to organizer
+        try {
+            val notificationRequest = NotificationRequestDTO(
+                userId = savedEvent.organizerId,
+                templateKey = "EVENT_CREATED_CONFIRMATION",
+                templateData = mapOf(
+                    "eventName" to savedEvent.title,
+                    "eventDate" to savedEvent.startTime.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")),
+                    "eventTime" to savedEvent.startTime.format(DateTimeFormatter.ofPattern("h:mm a")),
+                    "eventLocation" to savedEvent.location
+                ),
+                notificationType = "EVENT_UPDATE",
+                referenceId = savedEvent.id.toString(),
+                referenceType = "EVENT"
+            )
+
+            notificationServiceClient.sendNotification(notificationRequest)
+        } catch (e: Exception) {
+            logger.warn("Failed to send event creation notification: ${e.message}")
         }
 
         return savedEvent.toDTO()
@@ -124,6 +156,29 @@ class EventServiceImpl(
 
         val updatedEvent = eventRepository.save(event)
         logger.info("Updated event: ${updatedEvent.id} - ${updatedEvent.title}")
+
+        try {
+            val registrations = eventRegistrationRepository.findByEventId(id)
+            val userIds = registrations.map { it.userId }
+
+            if (userIds.isNotEmpty()) {
+                val batchNotificationRequest = BatchNotificationRequestDTO(
+                    userIds = userIds,
+                    templateKey = "EVENT_UPDATE_NOTIFICATION",
+                    templateData = mapOf(
+                        "eventName" to updatedEvent.title,
+                        "eventDate" to updatedEvent.startTime.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")),
+                        "eventTime" to updatedEvent.startTime.format(DateTimeFormatter.ofPattern("h:mm a")),
+                        "eventLocation" to updatedEvent.location
+                    ),
+                    notificationType = "EVENT_UPDATE"
+                )
+
+                notificationServiceClient.sendBatchNotification(batchNotificationRequest)
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to send event update notifications: ${e.message}")
+        }
 
         return updatedEvent.toDTO()
     }

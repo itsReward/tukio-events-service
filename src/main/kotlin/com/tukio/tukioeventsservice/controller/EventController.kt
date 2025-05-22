@@ -3,6 +3,7 @@ package com.tukio.tukioeventsservice.controller
 import com.tukio.tukioeventsservice.dto.*
 import com.tukio.tukioeventsservice.model.EventStatus
 import com.tukio.tukioeventsservice.service.EventService
+import org.slf4j.LoggerFactory
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -12,6 +13,7 @@ import java.time.LocalDateTime
 @RestController
 @RequestMapping("/api/events")
 class EventController(private val eventService: EventService) {
+    private val logger = LoggerFactory.getLogger(EventController::class.java)
 
     @GetMapping
     fun getAllEvents(): ResponseEntity<List<EventDTO>> {
@@ -25,6 +27,10 @@ class EventController(private val eventService: EventService) {
 
     @PostMapping
     fun createEvent(@RequestBody eventRequest: EventCreateRequest): ResponseEntity<EventDTO> {
+        logger.info("Creating event with title: ${eventRequest.title}")
+        logger.info("================================================")
+        logger.info("Event request: $eventRequest")
+        logger.info("================================================")
         val createdEvent = eventService.createEvent(eventRequest)
         return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent)
     }

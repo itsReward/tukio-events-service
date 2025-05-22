@@ -1,5 +1,7 @@
 package com.tukio.tukioeventsservice.service
 
+import com.tukio.tukioeventsservice.client.NotificationRequestDTO
+import com.tukio.tukioeventsservice.client.NotificationServiceClient
 import com.tukio.tukioeventsservice.dto.EventRegistrationDTO
 import com.tukio.tukioeventsservice.dto.EventRegistrationRequest
 import com.tukio.tukioeventsservice.dto.EventRegistrationUpdateRequest
@@ -11,14 +13,19 @@ import com.tukio.tukioeventsservice.repository.EventRegistrationRepository
 import com.tukio.tukioeventsservice.repository.EventRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class EventRegistrationServiceImpl(
     private val eventRegistrationRepository: EventRegistrationRepository,
     private val eventRepository: EventRepository
 ) : EventRegistrationService {
+
+    @Autowired
+    private lateinit var notificationServiceClient: NotificationServiceClient
 
     private val logger = LoggerFactory.getLogger(EventRegistrationServiceImpl::class.java)
 
@@ -105,6 +112,29 @@ class EventRegistrationServiceImpl(
 
         val savedRegistration = eventRegistrationRepository.save(registration)
         logger.info("User ${registration.userId} registered for event ${event.id}")
+
+        // Send registration confirmation notification
+        try {
+            val notificationRequest = NotificationRequestDTO(
+                userId = registration.userId,
+                templateKey = "EVENT_REGISTRATION_CONFIRMATION_EMAIL",
+                templateData = mapOf(
+                    "userName" to registration.userName,
+                    "eventName" to event.title,
+                    "eventDate" to event.startTime.format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy")),
+                    "eventTime" to event.startTime.format(DateTimeFormatter.ofPattern("h:mm a")),
+                    "eventLocation" to event.location
+                ),
+                channels = listOf("EMAIL", "IN_APP"),
+                notificationType = "EVENT_REGISTRATION",
+                referenceId = event.id.toString(),
+                referenceType = "EVENT"
+            )
+
+            notificationServiceClient.sendNotification(notificationRequest)
+        } catch (e: Exception) {
+            logger.warn("Failed to send registration confirmation: ${e.message}")
+        }
 
         return savedRegistration.toDTO()
     }

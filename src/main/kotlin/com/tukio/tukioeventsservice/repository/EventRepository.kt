@@ -32,15 +32,15 @@ interface EventRepository : JpaRepository<Event, Long> {
     ): List<Event>
 
     @Query("""
-        SELECT e FROM Event e
-        WHERE (:categoryId IS NULL OR e.category.id = :categoryId)
-        AND (:keyword IS NULL 
-            OR LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
-        AND (:startFrom IS NULL OR e.startTime >= :startFrom)
-        AND (:startTo IS NULL OR e.startTime <= :startTo)
-        AND (:status IS NULL OR e.status = :status)
-    """)
+    SELECT e FROM Event e
+    WHERE (:categoryId IS NULL OR e.category.id = :categoryId)
+    AND (:keyword IS NULL 
+        OR LOWER(e.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        OR LOWER(e.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+    AND (CAST(:startFrom as timestamp) IS NULL OR e.startTime >= :startFrom)
+    AND (CAST(:startTo as timestamp) IS NULL OR e.startTime <= :startTo)
+    AND (:status IS NULL OR e.status = :status)
+""")
     fun findBySearchCriteria(
         @Param("categoryId") categoryId: Long?,
         @Param("keyword") keyword: String?,
@@ -67,5 +67,3 @@ interface EventRepository : JpaRepository<Event, Long> {
     """)
     fun countByCategoryId(@Param("categoryId") categoryId: Long): Long
 }
-
-
