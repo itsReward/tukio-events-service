@@ -7,6 +7,9 @@ import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
 
 data class EventAttendanceRequest(
+    @field:NotNull(message = "User ID is required")
+    val userId: Long,
+
     @field:NotNull(message = "Attended status is required")
     val attended: Boolean
 )
