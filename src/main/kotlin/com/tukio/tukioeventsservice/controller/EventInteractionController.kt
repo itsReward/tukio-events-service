@@ -22,7 +22,7 @@ class EventInteractionController(
         @RequestHeader("X-Auth-User") userIdHeader: String,
         @Valid @RequestBody request: EventAttendanceRequest
     ): ResponseEntity<EventAttendanceResponse> {
-        val userId = userIdHeader.toLong()
+        val userId = request.userId
         val response = attendanceService.recordAttendance(eventId, userId, request)
         return ResponseEntity.ok(response)
     }
