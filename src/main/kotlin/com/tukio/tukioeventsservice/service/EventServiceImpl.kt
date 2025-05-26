@@ -68,7 +68,7 @@ class EventServiceImpl(
             organizerId = eventRequest.organizerId,
             imageUrl = eventRequest.imageUrl,
             tags = eventRequest.tags?.toMutableSet() ?: mutableSetOf(),
-            status = EventStatus.SCHEDULED
+            status = EventStatus.DRAFT
         )
 
         val savedEvent = eventRepository.save(event)
