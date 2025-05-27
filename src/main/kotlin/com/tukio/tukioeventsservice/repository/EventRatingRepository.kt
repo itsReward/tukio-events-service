@@ -20,4 +20,6 @@ interface EventRatingRepository : JpaRepository<EventRating, Long> {
 
     @Query("SELECT COUNT(r) FROM EventRating r WHERE r.eventId = :eventId")
     fun countRatingsByEventId(@Param("eventId") eventId: Long): Long
+
+    fun findByUserIdAndEventIdIn(userId: Long, eventIds: List<Long>): List<EventRating>
 }

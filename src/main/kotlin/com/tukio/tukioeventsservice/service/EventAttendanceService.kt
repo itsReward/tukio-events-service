@@ -2,10 +2,12 @@ package com.tukio.tukioeventsservice.service
 
 import com.tukio.tukioeventsservice.dto.EventAttendanceRequest
 import com.tukio.tukioeventsservice.dto.EventAttendanceResponse
+import com.tukio.tukioeventsservice.dto.EventAttendedDTO
 import com.tukio.tukioeventsservice.model.EventAttendance
 import com.tukio.tukioeventsservice.repository.EventAttendanceRepository
 import com.tukio.tukioeventsservice.repository.EventRepository
 import com.tukio.tukioeventsservice.exception.ResourceNotFoundException
+import com.tukio.tukioeventsservice.repository.EventRatingRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,7 +17,8 @@ import java.time.LocalDateTime
 @Transactional
 class EventAttendanceService(
     private val attendanceRepository: EventAttendanceRepository,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val ratingRepository: EventRatingRepository
 ) {
 
     private val logger = LoggerFactory.getLogger(EventAttendanceService::class.java)
@@ -96,6 +99,52 @@ class EventAttendanceService(
             )
         }
     }
+    fun getUserAttendedEvents(userId: Long): List<EventAttendedDTO> {
+        // Get all attendance records where user attended (attended = true)
+        val attendances = attendanceRepository.findAttendedEventsByUserId(userId)
+
+        if (attendances.isEmpty()) {
+            return emptyList()
+        }
+
+        // Get all event IDs that user attended
+        val eventIds = attendances.map { it.eventId }
+
+        // Fetch event details for all attended events
+        val events = eventRepository.findAllById(eventIds)
+
+        // Create a map for quick lookup
+        val eventMap = events.associateBy { it.id }
+        val attendanceMap = attendances.associateBy { it.eventId }
+
+        // Get all ratings by this user for these events
+        val userRatings = ratingRepository.findByUserIdAndEventIdIn(userId, eventIds)
+        val ratingMap = userRatings.associateBy { it.eventId }
+
+        return attendances.mapNotNull { attendance ->
+            val event = eventMap[attendance.eventId] ?: return@mapNotNull null
+            val userRating = ratingMap[event.id]
+            val now = LocalDateTime.now()
+
+            EventAttendedDTO(
+                eventId = event.id,
+                eventTitle = event.title,
+                eventDescription = event.description,
+                categoryId = event.category.id,
+                categoryName = event.category.name,
+                startTime = event.startTime,
+                endTime = event.endTime,
+                location = event.location,
+                venueId = event.venueId,
+                venueName = null, // Would be populated from venue service
+                organizer = event.organizer,
+                attendedAt = attendance.recordedAt,
+                hasRated = userRating != null,
+                userRating = userRating?.rating,
+                canRate = canUserRateEvent(event, true) && userRating == null
+            )
+        }.sortedByDescending { it.attendedAt } // Most recently attended first
+    }
 
     private fun canUserRateEvent(event: com.tukio.tukioeventsservice.model.Event, attended: Boolean): Boolean {
         val now = LocalDateTime.now()
@@ -103,3 +152,6 @@ class EventAttendanceService(
         return now.isAfter(event.endTime) && attended
     }
 }
+
+
+

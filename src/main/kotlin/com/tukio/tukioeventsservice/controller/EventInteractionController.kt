@@ -19,7 +19,6 @@ class EventInteractionController(
     @PostMapping("/{eventId}/attendance")
     fun recordAttendance(
         @PathVariable eventId: Long,
-        @RequestHeader("X-Auth-User") userIdHeader: String,
         @Valid @RequestBody request: EventAttendanceRequest
     ): ResponseEntity<EventAttendanceResponse> {
         val userId = request.userId
@@ -27,15 +26,24 @@ class EventInteractionController(
         return ResponseEntity.ok(response)
     }
 
-    @GetMapping("/{eventId}/attendance/me")
+    @GetMapping("/{eventId}/attendance/{userId}")
     fun getMyAttendance(
         @PathVariable eventId: Long,
-        @RequestHeader("X-Auth-User") userIdHeader: String
+        @PathVariable userId: Long
     ): ResponseEntity<EventAttendanceResponse?> {
-        val userId = userIdHeader.toLong()
         val response = attendanceService.getUserAttendanceForEvent(eventId, userId)
         return ResponseEntity.ok(response)
     }
+
+    @GetMapping("/user/{userId}/attended")
+    fun getUserAttendedEvents(
+        @PathVariable userId: Long
+    ): ResponseEntity<List<EventAttendedDTO>> {
+        val attendedEvents = attendanceService.getUserAttendedEvents(userId)
+        return ResponseEntity.ok(attendedEvents)
+    }
+
+
 
     @GetMapping("/{eventId}/attendees")
     fun getEventAttendees(
@@ -49,20 +57,18 @@ class EventInteractionController(
     @PostMapping("/{eventId}/rating")
     fun rateEvent(
         @PathVariable eventId: Long,
-        @RequestHeader("X-Auth-User") userIdHeader: String,
         @Valid @RequestBody request: EventRatingRequest
     ): ResponseEntity<EventRatingResponse> {
-        val userId = userIdHeader.toLong()
+        val userId = request.userId
         val response = ratingService.rateEvent(eventId, userId, request)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
-    @GetMapping("/{eventId}/rating/me")
+    @GetMapping("/{eventId}/rating/{userId}")
     fun getMyRating(
         @PathVariable eventId: Long,
-        @RequestHeader("X-Auth-User") userIdHeader: String
+        @PathVariable userId: Long,
     ): ResponseEntity<EventRatingResponse?> {
-        val userId = userIdHeader.toLong()
         val response = ratingService.getUserRatingForEvent(eventId, userId)
         return ResponseEntity.ok(response)
     }

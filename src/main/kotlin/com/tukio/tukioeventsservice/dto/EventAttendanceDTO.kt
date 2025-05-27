@@ -24,6 +24,9 @@ data class EventAttendanceResponse(
 )
 
 data class EventRatingRequest(
+    @field:NotNull(message = "User ID is required")
+    val userId: Long,
+
     @field:Min(value = 1, message = "Rating must be at least 1")
     @field:Max(value = 5, message = "Rating must be at most 5")
     val rating: Int,
@@ -50,4 +53,23 @@ data class EventRatingSummaryDTO(
     val totalRatings: Int,
     val ratingDistribution: Map<Int, Int>, // star count -> number of ratings
     val categoryAverages: Map<String, Double>?
+)
+
+
+data class EventAttendedDTO(
+    val eventId: Long,
+    val eventTitle: String,
+    val eventDescription: String,
+    val categoryId: Long,
+    val categoryName: String,
+    val startTime: LocalDateTime,
+    val endTime: LocalDateTime,
+    val location: String,
+    val venueId: Long?,
+    val venueName: String?,
+    val organizer: String,
+    val attendedAt: LocalDateTime,
+    val hasRated: Boolean,
+    val userRating: Int?,
+    val canRate: Boolean
 )
